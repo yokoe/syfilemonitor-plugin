@@ -97,12 +97,12 @@ public class FileModificationCheckBuilder extends Builder {
          * @return
          *      Indicates the outcome of the validation. This is sent to the browser.
          */
-        public FormValidation doCheckName(@QueryParameter String value)
+        public FormValidation doCheckInput(@QueryParameter String value)
                 throws IOException, ServletException {
             if (value.length() == 0)
-                return FormValidation.error("Please set a name");
+                return FormValidation.error("Please specify the full path of the directory to check modification.");
             if (value.length() < 4)
-                return FormValidation.warning("Isn't the name too short?");
+                return FormValidation.warning("Isn't the path too short?");
             return FormValidation.ok();
         }
 
