@@ -1,20 +1,24 @@
 package com.kreuz45.plugins;
-import hudson.Launcher;
 import hudson.Extension;
-import hudson.util.FormValidation;
-import hudson.model.AbstractBuild;
+import hudson.Launcher;
 import hudson.model.BuildListener;
+import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.tasks.Builder;
 import hudson.tasks.BuildStepDescriptor;
-import net.sf.json.JSONObject;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.QueryParameter;
+import hudson.tasks.Builder;
+import hudson.util.FormValidation;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 
 import javax.servlet.ServletException;
-import java.io.IOException;
-import java.io.File;
+
+import net.sf.json.JSONObject;
+
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * Sample {@link Builder}.
@@ -49,6 +53,22 @@ public class FileModificationCheckBuilder extends Builder {
     public String getInput() {
         return input;
     }
+    
+    private ArrayList<File> getFilesUnderDirectory(String rootDirectory) {
+    	ArrayList<File> entries = new ArrayList<File>();
+        File dir = new File(rootDirectory);
+        File[] files = dir.listFiles();
+        for (int i = 0; i < files.length; i++) {
+            File file = files[i];
+            if (file.isDirectory()) {
+            	ArrayList<File> filesUnderSubDirectory = getFilesUnderDirectory(file.getAbsolutePath());
+            	entries.addAll(filesUnderSubDirectory);
+            } else {
+            	entries.add(file);
+            }
+        }
+    	return entries;
+    }
 
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
@@ -58,12 +78,11 @@ public class FileModificationCheckBuilder extends Builder {
         listener.getLogger().println("Check modification in " + input);
 
         // List all the files in the directory
-        File dir = new File(input);
-        File[] files = dir.listFiles();
-        for (int i = 0; i < files.length; i++) {
-            File file = files[i];
-            listener.getLogger().println((i + 1) + ":    " + file);
+        ArrayList<File> files = getFilesUnderDirectory(input);
+        for (File file : files) {
+        	listener.getLogger().println(file);
         }
+
 
         return true;
     }
