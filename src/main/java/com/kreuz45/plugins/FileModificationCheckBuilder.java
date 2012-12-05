@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import javax.servlet.ServletException;
 
@@ -75,6 +76,19 @@ public class FileModificationCheckBuilder extends Builder {
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
         // This is where you 'build' the project.
         // Since this is a dummy, we just say 'hello world' and call that a build.
+    	
+    	// Load previous state
+    	String previousStateString = build.getWorkspace().child("files.txt").readToString();
+    	JSONObject beforeJSON = JSONObject.fromObject(previousStateString).getJSONObject("files");
+    	HashMap<String, Long> before = new HashMap<String, Long>();
+    	@SuppressWarnings("unchecked")
+		Iterator<String> it = beforeJSON.keys();
+    	while(it.hasNext()) {
+    		String key = it.next();
+    		listener.getLogger().println(key);
+    		before.put(key, beforeJSON.getLong(key));
+    	}
+    	listener.getLogger().println("Before: " + before);
 
         listener.getLogger().println("Check modification in " + input);
 
@@ -85,7 +99,9 @@ public class FileModificationCheckBuilder extends Builder {
         for (File file : files) {
         	fileDates.put(file.toString(), file.lastModified());
         }
-        build.getWorkspace().child("files.txt").write(fileDates.toString(), "utf-8");
+        JSONObject json = new JSONObject();
+        json.put("files", fileDates);
+        build.getWorkspace().child("files.txt").write(json.toString(), "utf-8");
         
         return true;
     }
