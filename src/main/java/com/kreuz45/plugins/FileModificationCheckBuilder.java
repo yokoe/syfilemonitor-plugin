@@ -11,6 +11,7 @@ import hudson.util.FormValidation;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import javax.servlet.ServletException;
 
@@ -79,13 +80,13 @@ public class FileModificationCheckBuilder extends Builder {
 
         // List all the files in the directory
         ArrayList<File> files = getFilesUnderDirectory(input);
-        build.getWorkspace().child("files.txt").write(files.toString(), "utf-8");
+        HashMap<String, Long> fileDates = new HashMap<String, Long>(); 
         
         for (File file : files) {
-        	listener.getLogger().println(file);
+        	fileDates.put(file.toString(), file.lastModified());
         }
-
-
+        build.getWorkspace().child("files.txt").write(fileDates.toString(), "utf-8");
+        
         return true;
     }
 
