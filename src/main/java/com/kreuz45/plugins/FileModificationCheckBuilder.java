@@ -71,7 +71,7 @@ public class FileModificationCheckBuilder extends Builder {
     }
 
     @Override
-    public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
+    public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
         // This is where you 'build' the project.
         // Since this is a dummy, we just say 'hello world' and call that a build.
 
@@ -79,6 +79,8 @@ public class FileModificationCheckBuilder extends Builder {
 
         // List all the files in the directory
         ArrayList<File> files = getFilesUnderDirectory(input);
+        build.getWorkspace().child("files.txt").write(files.toString(), "utf-8");
+        
         for (File file : files) {
         	listener.getLogger().println(file);
         }
