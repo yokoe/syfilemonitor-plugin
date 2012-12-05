@@ -14,6 +14,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.io.File;
 
 /**
  * Sample {@link Builder}.
@@ -34,19 +35,19 @@ import java.io.IOException;
  */
 public class FileModificationCheckBuilder extends Builder {
 
-    private final String name;
+    private final String input;
 
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public FileModificationCheckBuilder(String name) {
-        this.name = name;
+    public FileModificationCheckBuilder(String input) {
+        this.input = input;
     }
 
     /**
      * We'll use this from the <tt>config.jelly</tt>.
      */
-    public String getName() {
-        return name;
+    public String getInput() {
+        return input;
     }
 
     @Override
@@ -54,11 +55,16 @@ public class FileModificationCheckBuilder extends Builder {
         // This is where you 'build' the project.
         // Since this is a dummy, we just say 'hello world' and call that a build.
 
-        // This also shows how you can consult the global configuration of the builder
-        if (getDescriptor().getUseFrench())
-            listener.getLogger().println("Bonjour, "+name+"!");
-        else
-            listener.getLogger().println("Hello, "+name+"!");
+        listener.getLogger().println("Check modification in " + input);
+
+        // List all the files in the directory
+        File dir = new File(input);
+        File[] files = dir.listFiles();
+        for (int i = 0; i < files.length; i++) {
+            File file = files[i];
+            listener.getLogger().println((i + 1) + ":    " + file);
+        }
+
         return true;
     }
 
