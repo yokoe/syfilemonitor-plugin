@@ -19,6 +19,7 @@ import javax.servlet.ServletException;
 
 import net.sf.json.JSONObject;
 
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -102,6 +103,19 @@ public class FileModificationCheckBuilder extends Builder {
         }
         return fileDates;
     }
+    
+    private boolean writeListToFile(AbstractBuild build, Launcher launcher, BuildListener listener, ArrayList<String> list, String filename) {
+    	try {
+			build.getWorkspace().child(filename).write(StringUtils.join(list, "\n"), "utf-8");
+			return true;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+    }
 
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
@@ -137,7 +151,11 @@ public class FileModificationCheckBuilder extends Builder {
     	listener.getLogger().println("Added: " + addedFiles);
     	listener.getLogger().println("Modified: " + modifiedFiles);
     	listener.getLogger().println("Deleted: " + deletedFiles);
-
+    	
+    	this.writeListToFile(build, launcher, listener, addedFiles, ".files-added");
+    	this.writeListToFile(build, launcher, listener, modifiedFiles, ".files-modified");
+    	this.writeListToFile(build, launcher, listener, deletedFiles, ".files-deleted");
+    	
         // Save current states
         JSONObject json = new JSONObject();
         json.put("files", current);
