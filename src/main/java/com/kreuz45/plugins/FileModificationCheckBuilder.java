@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map.Entry;
 
 import javax.servlet.ServletException;
 
@@ -71,14 +72,16 @@ public class FileModificationCheckBuilder extends Builder {
         }
     	return entries;
     }
-
-    @Override
-    public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-        // This is where you 'build' the project.
-        // Since this is a dummy, we just say 'hello world' and call that a build.
-    	
-    	// Load previous state
-    	String previousStateString = build.getWorkspace().child("files.txt").readToString();
+    
+    private HashMap<String, Long> getPreviousDirectoryState(AbstractBuild build, Launcher launcher, BuildListener listener) {
+    	String previousStateString;
+		try {
+			previousStateString = build.getWorkspace().child("files.txt").readToString();
+		} catch (IOException e) {
+			e.printStackTrace();
+			listener.getLogger().println("Previous directory state not found.");
+			return new HashMap<String, Long>();
+		}
     	JSONObject beforeJSON = JSONObject.fromObject(previousStateString).getJSONObject("files");
     	HashMap<String, Long> before = new HashMap<String, Long>();
     	@SuppressWarnings("unchecked")
@@ -88,19 +91,56 @@ public class FileModificationCheckBuilder extends Builder {
     		listener.getLogger().println(key);
     		before.put(key, beforeJSON.getLong(key));
     	}
-    	listener.getLogger().println("Before: " + before);
-
-        listener.getLogger().println("Check modification in " + input);
-
-        // List all the files in the directory
-        ArrayList<File> files = getFilesUnderDirectory(input);
+    	return before;
+    }
+    private HashMap<String, Long> getCurrentDirectoryState(AbstractBuild build, Launcher launcher, BuildListener listener) {
+    	ArrayList<File> files = getFilesUnderDirectory(input);
         HashMap<String, Long> fileDates = new HashMap<String, Long>(); 
         
         for (File file : files) {
         	fileDates.put(file.toString(), file.lastModified());
         }
+        return fileDates;
+    }
+
+    @Override
+    public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+        // This is where you 'build' the project.
+        // Since this is a dummy, we just say 'hello world' and call that a build.
+    	
+    	// Load previous state
+    	HashMap<String, Long> before = this.getPreviousDirectoryState(build, launcher, listener);
+    	HashMap<String, Long> current = this.getCurrentDirectoryState(build, launcher, listener);
+    	
+    	ArrayList<String> addedFiles = new ArrayList<String>();
+    	ArrayList<String> modifiedFiles = new ArrayList<String>();
+    	ArrayList<String> deletedFiles = new ArrayList<String>();
+    	
+    	for(Entry<String, Long> entry : before.entrySet()) {
+    		String filePath = entry.getKey();
+    		if (current.containsKey(filePath)) {
+    			if (!current.get(filePath).equals(before.get(filePath))) {
+    				modifiedFiles.add(filePath);
+    			}
+    		} else {
+    			deletedFiles.add(filePath);
+    		}
+    	}
+    	for(Entry<String, Long> entry : current.entrySet()) {
+    		String filePath = entry.getKey();
+    		if (!before.containsKey(filePath)) {
+    			addedFiles.add(filePath);
+    		}
+    	}
+    	listener.getLogger().println("Check modification in " + input);
+    	
+    	listener.getLogger().println("Added: " + addedFiles);
+    	listener.getLogger().println("Modified: " + modifiedFiles);
+    	listener.getLogger().println("Deleted: " + deletedFiles);
+
+        // Save current states
         JSONObject json = new JSONObject();
-        json.put("files", fileDates);
+        json.put("files", current);
         build.getWorkspace().child("files.txt").write(json.toString(), "utf-8");
         
         return true;
